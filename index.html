@@ -392,36 +392,98 @@
 
         // API 함수들
         async function fetchRestaurants(category) {
-            const response = await fetch(`${API_BASE_URL}/api/restaurants?limit=20&offset=0&category=${category}`);
-            if (!response.ok) {
-                throw new Error('레스토랑 목록을 불러오는데 실패했습니다');
-            }
-            const data = await response.json();
+            try {
+                const url = `${API_BASE_URL}/api/restaurants?limit=20&offset=0&category=${category}`;
+                console.log('🌐 [API REQUEST] Fetching restaurants from:', url);
+                console.log('📋 Category:', category);
 
-            // 응답 구조 확인 및 배열 추출
-            console.log('Restaurant API response:', data);
+                const response = await fetch(url);
 
-            // 다양한 응답 형식 처리
-            if (Array.isArray(data)) {
-                return data;
-            } else if (data.data && Array.isArray(data.data)) {
-                return data.data;
-            } else if (data.results && Array.isArray(data.results)) {
-                return data.results;
-            } else if (data.restaurants && Array.isArray(data.restaurants)) {
-                return data.restaurants;
-            } else {
-                // 단일 객체인 경우 배열로 변환
-                return [data];
+                console.log('📡 [API RESPONSE] Status:', response.status, response.statusText);
+                console.log('📡 [API RESPONSE] Headers:', {
+                    'content-type': response.headers.get('content-type'),
+                    'access-control-allow-origin': response.headers.get('access-control-allow-origin')
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: 레스토랑 목록을 불러오는데 실패했습니다`);
+                }
+
+                const data = await response.json();
+                console.log('✅ [API SUCCESS] Restaurant data received:', data);
+                console.log('📊 [API SUCCESS] Data type:', typeof data, 'Is Array:', Array.isArray(data));
+
+                // 응답 구조 확인 및 배열 추출
+                if (Array.isArray(data)) {
+                    console.log('✅ Response is direct array, length:', data.length);
+                    return data;
+                } else if (data.data && Array.isArray(data.data)) {
+                    console.log('✅ Response has data array, length:', data.data.length);
+                    return data.data;
+                } else if (data.results && Array.isArray(data.results)) {
+                    console.log('✅ Response has results array, length:', data.results.length);
+                    return data.results;
+                } else if (data.restaurants && Array.isArray(data.restaurants)) {
+                    console.log('✅ Response has restaurants array, length:', data.restaurants.length);
+                    return data.restaurants;
+                } else {
+                    console.warn('⚠️ Response is not array format, converting single object to array');
+                    return [data];
+                }
+            } catch (error) {
+                console.error('❌ [API ERROR] Failed to fetch restaurants');
+                console.error('❌ Error type:', error.name);
+                console.error('❌ Error message:', error.message);
+                console.error('❌ Full error:', error);
+
+                // CORS 에러 감지
+                if (error.message.includes('Failed to fetch') ||
+                    error.message.includes('NetworkError') ||
+                    error.name === 'TypeError' && error.message.includes('fetch')) {
+                    console.error('🚫 [CORS ERROR] This appears to be a CORS issue!');
+                    console.error('🚫 The server needs to set proper CORS headers:');
+                    console.error('   - Access-Control-Allow-Origin: *');
+                    console.error('   - Access-Control-Allow-Methods: GET, POST, OPTIONS');
+                    throw new Error('CORS 오류: 서버가 요청을 차단했습니다. 서버에서 CORS 설정이 필요합니다.');
+                }
+
+                throw error;
             }
         }
 
         async function fetchRestaurantDetails(restaurantId) {
-            const response = await fetch(`${API_BASE_URL}/api/restaurants/${restaurantId}`);
-            if (!response.ok) {
-                throw new Error('레스토랑 상세 정보를 불러오는데 실패했습니다');
+            try {
+                const url = `${API_BASE_URL}/api/restaurants/${restaurantId}`;
+                console.log('🌐 [API REQUEST] Fetching restaurant details from:', url);
+                console.log('🏪 Restaurant ID:', restaurantId);
+
+                const response = await fetch(url);
+
+                console.log('📡 [API RESPONSE] Status:', response.status, response.statusText);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: 레스토랑 상세 정보를 불러오는데 실패했습니다`);
+                }
+
+                const data = await response.json();
+                console.log('✅ [API SUCCESS] Restaurant details received:', data);
+
+                return data;
+            } catch (error) {
+                console.error('❌ [API ERROR] Failed to fetch restaurant details');
+                console.error('❌ Error type:', error.name);
+                console.error('❌ Error message:', error.message);
+
+                // CORS 에러 감지
+                if (error.message.includes('Failed to fetch') ||
+                    error.message.includes('NetworkError') ||
+                    error.name === 'TypeError' && error.message.includes('fetch')) {
+                    console.error('🚫 [CORS ERROR] This appears to be a CORS issue!');
+                    throw new Error('CORS 오류: 서버가 요청을 차단했습니다. 서버에서 CORS 설정이 필요합니다.');
+                }
+
+                throw error;
             }
-            return await response.json();
         }
 
         async function loadRestaurants(category) {
@@ -557,7 +619,24 @@
         }
 
         function showRestaurantError(message) {
-            document.getElementById('restaurantButtons').innerHTML = `<p class="error-text">⚠️ ${message}</p>`;
+            const isCorsError = message.includes('CORS');
+            const errorHtml = isCorsError
+                ? `<div style="text-align: left; padding: 10px;">
+                    <p class="error-text" style="font-size: 1em; margin-bottom: 10px;">🚫 CORS 오류 발생</p>
+                    <p style="color: #718096; font-size: 0.85em; line-height: 1.6;">
+                        서버(${API_BASE_URL})가 브라우저 요청을 차단했습니다.<br>
+                        <br>
+                        <strong>해결 방법:</strong><br>
+                        서버에서 다음 헤더를 설정해야 합니다:<br>
+                        • Access-Control-Allow-Origin: *<br>
+                        • Access-Control-Allow-Methods: GET<br>
+                        <br>
+                        <strong>개발자 도구(F12) → Console 탭에서 상세 정보를 확인하세요.</strong>
+                    </p>
+                   </div>`
+                : `<p class="error-text">⚠️ ${message}</p>`;
+
+            document.getElementById('restaurantButtons').innerHTML = errorHtml;
         }
 
         function showLoading() {
@@ -571,7 +650,12 @@
         }
 
         function showError(message) {
-            document.getElementById('result').innerHTML = `<p class="error-text">⚠️ ${message}<br><small>기본 메뉴로 진행합니다</small></p>`;
+            const isCorsError = message.includes('CORS');
+            const errorHtml = isCorsError
+                ? `<p class="error-text">🚫 ${message}<br><small>개발자 도구(F12) Console에서 자세한 정보 확인</small></p>`
+                : `<p class="error-text">⚠️ ${message}<br><small>기본 메뉴로 진행합니다</small></p>`;
+
+            document.getElementById('result').innerHTML = errorHtml;
         }
 
         async function selectCategory(category) {
@@ -708,6 +792,13 @@
 
         // 초기 데이터 로드
         window.addEventListener('DOMContentLoaded', () => {
+            console.log('='.repeat(60));
+            console.log('🎰 음식 메뉴 룰렛 시작');
+            console.log('='.repeat(60));
+            console.log('📍 API Base URL:', API_BASE_URL);
+            console.log('🔍 디버깅 정보가 여기 표시됩니다');
+            console.log('='.repeat(60));
+
             loadRestaurants('korean');
         });
     </script>
