@@ -374,18 +374,15 @@
 
     <div class="container">
         <h1>🎰 음식 메뉴 룰렛</h1>
-        <p class="subtitle">카테고리와 레스토랑을 선택하고 룰렛을 돌려보세요!</p>
-
-        <div class="category-buttons">
-            <button class="category-btn active" onclick="selectCategory('korean')">🍚 한식</button>
-            <button class="category-btn" onclick="selectCategory('chinese')">🍜 중식</button>
-            <button class="category-btn" onclick="selectCategory('western')">🍝 양식</button>
-        </div>
+        <p class="subtitle">레스토랑을 선택하고 룰렛을 돌려보세요!</p>
 
         <div class="restaurant-section" id="restaurantSection">
-            <div class="restaurant-buttons" id="restaurantButtons">
-                <p style="color: #718096;">카테고리를 선택하면 레스토랑 목록이 표시됩니다</p>
-            </div>
+            <label for="restaurantSelect" style="display: block; margin-bottom: 10px; font-weight: bold; color: #2d3748;">
+                🏪 레스토랑 선택
+            </label>
+            <select id="restaurantSelect" onchange="selectRestaurant()" style="width: 100%; padding: 12px; font-size: 1em; border-radius: 8px; border: 2px solid #cbd5e0; background: white; color: #2d3748; cursor: pointer;">
+                <option value="">레스토랑을 선택하세요...</option>
+            </select>
         </div>
 
         <div class="roulette-container">
@@ -416,19 +413,8 @@
     <script>
         const API_BASE_URL = 'https://nlpfriendly.easypcb.co.kr';
 
-        const categoryMap = {
-            'korean': '한식',
-            'chinese': '중식',
-            'western': '양식'
-        };
+        const colorPalette = ['#e53e3e', '#dd6b20', '#d69e2e', '#38a169', '#319795', '#3182ce', '#5a67d8', '#805ad5', '#c53030', '#2c5282', '#2f855a', '#6b46c1'];
 
-        const colorPalettes = {
-            korean: ['#e53e3e', '#dd6b20', '#d69e2e', '#38a169', '#319795', '#3182ce', '#5a67d8', '#805ad5'],
-            chinese: ['#c53030', '#2c5282', '#2f855a', '#6b46c1', '#00718a', '#c05621', '#276749', '#4a5568'],
-            western: ['#742a2a', '#1a365d', '#22543d', '#553c9a', '#744210', '#2d3748', '#2c7a7b', '#975a16']
-        };
-
-        let currentCategory = 'korean';
         let currentRestaurants = [];
         let selectedRestaurant = null;
         let currentMenuData = { items: [], colors: [] };
@@ -460,12 +446,12 @@
         }
 
         // API 함수들
-        async function fetchRestaurants(category) {
+        async function fetchRestaurants() {
             try {
-                const url = `${API_BASE_URL}/api/restaurants?limit=20&offset=0&category=${category}`;
+                const url = `${API_BASE_URL}/api/restaurants?limit=1000&offset=0`;
                 logToScreen('🌐 [요청] 레스토랑 목록 가져오기', 'info');
                 logToScreen(`📋 URL: ${url}`, 'info');
-                logToScreen(`📋 카테고리: ${category}`, 'info');
+                logToScreen(`📋 최대 1000개 레스토랑 요청`, 'info');
 
                 const response = await fetch(url);
 
@@ -482,7 +468,12 @@
                 logToScreen(`📊 데이터 타입: ${typeof data}, 배열: ${Array.isArray(data)}`, 'info');
 
                 // 응답 구조 확인 및 배열 추출
-                if (Array.isArray(data)) {
+                // API 응답 형식: {result: true, message: "...", data: {total: X, restaurants: [...]}}
+                if (data.data && data.data.restaurants && Array.isArray(data.data.restaurants)) {
+                    logToScreen(`✅ data.restaurants 배열 형식, 개수: ${data.data.restaurants.length}`, 'success');
+                    logToScreen(`📊 전체 개수: ${data.data.total}개`, 'info');
+                    return data.data.restaurants;
+                } else if (Array.isArray(data)) {
                     logToScreen(`✅ 직접 배열 형식, 개수: ${data.length}`, 'success');
                     return data;
                 } else if (data.data && Array.isArray(data.data)) {
@@ -495,9 +486,9 @@
                     logToScreen(`✅ restaurants 배열 형식, 개수: ${data.restaurants.length}`, 'success');
                     return data.restaurants;
                 } else {
-                    logToScreen('⚠️ 배열이 아닌 형식, 단일 객체로 변환', 'warning');
-                    logToScreen(`응답 내용: ${JSON.stringify(data).substring(0, 200)}...`, 'info');
-                    return [data];
+                    logToScreen('⚠️ 예상치 못한 응답 형식', 'warning');
+                    logToScreen(`응답 내용: ${JSON.stringify(data).substring(0, 300)}...`, 'info');
+                    return [];
                 }
             } catch (error) {
                 logToScreen('❌ [에러] 레스토랑 목록 가져오기 실패', 'error');
@@ -552,19 +543,19 @@
             }
         }
 
-        async function loadRestaurants(category) {
+        async function loadRestaurants() {
             try {
                 isLoading = true;
                 showRestaurantLoading();
 
                 logToScreen('─'.repeat(50), 'info');
-                logToScreen(`📂 카테고리 변경: ${categoryMap[category]}`, 'info');
+                logToScreen(`📂 전체 레스토랑 목록 로드 시작`, 'info');
 
                 // 레스토랑 리스트 가져오기
-                const restaurants = await fetchRestaurants(categoryMap[category]);
+                const restaurants = await fetchRestaurants();
 
                 if (!restaurants || !Array.isArray(restaurants) || restaurants.length === 0) {
-                    throw new Error('해당 카테고리의 레스토랑이 없습니다');
+                    throw new Error('레스토랑 목록이 없습니다');
                 }
 
                 logToScreen(`✅ ${restaurants.length}개 레스토랑 로드 완료`, 'success');
@@ -580,44 +571,47 @@
         }
 
         function displayRestaurants(restaurants) {
-            const container = document.getElementById('restaurantButtons');
-            container.innerHTML = '';
+            const select = document.getElementById('restaurantSelect');
+
+            // 기본 옵션만 남기고 초기화
+            select.innerHTML = '<option value="">레스토랑을 선택하세요...</option>';
+            select.disabled = false;
 
             if (!Array.isArray(restaurants)) {
                 logToScreen('❌ restaurants가 배열이 아닙니다', 'error');
-                container.innerHTML = '<p class="error-text">레스토랑 데이터 형식 오류</p>';
                 return;
             }
 
             if (restaurants.length === 0) {
-                container.innerHTML = '<p style="color: #718096;">레스토랑이 없습니다</p>';
+                logToScreen('❌ 레스토랑이 없습니다', 'error');
                 return;
             }
 
-            logToScreen(`🏪 ${restaurants.length}개 레스토랑 버튼 생성`, 'info');
+            logToScreen(`🏪 ${restaurants.length}개 레스토랑 selectbox 추가`, 'info');
             restaurants.forEach((restaurant, index) => {
-                const button = document.createElement('button');
-                button.className = 'restaurant-btn';
-                button.textContent = restaurant.name || restaurant.place_name || `레스토랑 ${index + 1}`;
-                button.onclick = () => selectRestaurant(restaurant);
-                container.appendChild(button);
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = restaurant.name || restaurant.place_name || `레스토랑 ${index + 1}`;
+                select.appendChild(option);
             });
         }
 
-        async function selectRestaurant(restaurant) {
+        async function selectRestaurant() {
+            const select = document.getElementById('restaurantSelect');
+            const selectedIndex = select.value;
+
+            if (!selectedIndex || selectedIndex === '') {
+                return;
+            }
+
             if (isSpinning || isLoading) return;
 
+            const restaurant = currentRestaurants[parseInt(selectedIndex)];
             selectedRestaurant = restaurant;
             const restaurantName = restaurant.name || restaurant.place_name || '알 수 없음';
 
             logToScreen('─'.repeat(50), 'info');
             logToScreen(`🏪 레스토랑 선택: ${restaurantName}`, 'success');
-
-            // 레스토랑 버튼 선택 상태 변경
-            document.querySelectorAll('.restaurant-btn').forEach(btn => {
-                btn.classList.remove('selected');
-            });
-            event.target.classList.add('selected');
 
             // 선택한 레스토랑의 메뉴 로드
             await loadMenuData(restaurant.id);
@@ -647,9 +641,8 @@
 
                 // 색상 할당
                 const colors = [];
-                const palette = colorPalettes[currentCategory];
                 for (let i = 0; i < menuItems.length; i++) {
-                    colors.push(palette[i % palette.length]);
+                    colors.push(colorPalette[i % colorPalette.length]);
                 }
 
                 currentMenuData = {
@@ -664,9 +657,6 @@
             } catch (error) {
                 logToScreen(`❌ 메뉴 로드 실패: ${error.message}`, 'error');
                 showError(error.message);
-
-                // 폴백 데이터 사용
-                useFallbackData(currentCategory);
             } finally {
                 isLoading = false;
             }
@@ -690,28 +680,18 @@
         }
 
         function showRestaurantLoading() {
-            document.getElementById('restaurantButtons').innerHTML = '<p style="color: #718096;"><span class="loading"></span>레스토랑 목록을 불러오는 중...</p>';
+            const select = document.getElementById('restaurantSelect');
+            select.innerHTML = '<option value="">로딩 중...</option>';
+            select.disabled = true;
         }
 
         function showRestaurantError(message) {
-            const isCorsError = message.includes('CORS');
-            const errorHtml = isCorsError
-                ? `<div style="text-align: left; padding: 10px;">
-                    <p class="error-text" style="font-size: 1em; margin-bottom: 10px;">🚫 CORS 오류 발생</p>
-                    <p style="color: #718096; font-size: 0.85em; line-height: 1.6;">
-                        서버(${API_BASE_URL})가 브라우저 요청을 차단했습니다.<br>
-                        <br>
-                        <strong>해결 방법:</strong><br>
-                        서버에서 다음 헤더를 설정해야 합니다:<br>
-                        • Access-Control-Allow-Origin: *<br>
-                        • Access-Control-Allow-Methods: GET<br>
-                        <br>
-                        <strong>개발자 도구(F12) → Console 탭에서 상세 정보를 확인하세요.</strong>
-                    </p>
-                   </div>`
-                : `<p class="error-text">⚠️ ${message}</p>`;
-
-            document.getElementById('restaurantButtons').innerHTML = errorHtml;
+            const select = document.getElementById('restaurantSelect');
+            const errorMsg = message.includes('CORS')
+                ? '⚠️ CORS 에러 - 로그 확인'
+                : `⚠️ ${message}`;
+            select.innerHTML = `<option value="">${errorMsg}</option>`;
+            select.disabled = true;
         }
 
         function showLoading() {
@@ -728,30 +708,9 @@
             const isCorsError = message.includes('CORS');
             const errorHtml = isCorsError
                 ? `<p class="error-text">🚫 ${message}<br><small>개발자 도구(F12) Console에서 자세한 정보 확인</small></p>`
-                : `<p class="error-text">⚠️ ${message}<br><small>기본 메뉴로 진행합니다</small></p>`;
+                : `<p class="error-text">⚠️ ${message}</p>`;
 
             document.getElementById('result').innerHTML = errorHtml;
-        }
-
-        async function selectCategory(category) {
-            if (isSpinning || isLoading) return;
-
-            currentCategory = category;
-            selectedRestaurant = null;
-
-            // 버튼 active 상태 변경
-            document.querySelectorAll('.category-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            event.target.classList.add('active');
-
-            // 룰렛 초기화
-            currentMenuData = { items: [], colors: [] };
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            document.getElementById('result').innerHTML = '<p style="color: #718096;">레스토랑을 선택해주세요</p>';
-
-            // 레스토랑 목록 로드
-            await loadRestaurants(category);
         }
 
         function drawRoulette() {
@@ -874,7 +833,7 @@
             logToScreen('🔍 모든 API 요청/응답이 여기 표시됩니다', 'info');
             logToScreen('═'.repeat(50), 'info');
 
-            loadRestaurants('korean');
+            loadRestaurants();
         });
     </script>
 </body>
