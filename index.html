@@ -154,6 +154,27 @@
             animation: bounceIn 0.6s ease-out;
         }
 
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #4299e1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-text {
+            color: #e53e3e;
+            font-size: 0.9em;
+        }
+
         .floating-shapes {
             position: fixed;
             top: 0;
@@ -298,33 +319,147 @@
     </div>
 
     <script>
-        const menuData = {
-            korean: {
-                name: '한식',
-                items: ['김치찌개', '된장찌개', '불고기', '비빔밥', '삼겹살', '갈비탕', '냉면', '순두부찌개'],
-                colors: ['#e53e3e', '#dd6b20', '#d69e2e', '#38a169', '#319795', '#3182ce', '#5a67d8', '#805ad5']
-            },
-            chinese: {
-                name: '중식',
-                items: ['짜장면', '짬뽕', '탕수육', '마파두부', '양장피', '깐풍기', '볶음밥', '군만두'],
-                colors: ['#c53030', '#2c5282', '#2f855a', '#6b46c1', '#00718a', '#c05621', '#276749', '#4a5568']
-            },
-            western: {
-                name: '양식',
-                items: ['스테이크', '파스타', '피자', '리조또', '햄버거', '샐러드', '그라탕', '오므라이스'],
-                colors: ['#742a2a', '#1a365d', '#22543d', '#553c9a', '#744210', '#2d3748', '#2c7a7b', '#975a16']
-            }
+        const API_BASE_URL = 'https://nlpfriendly.easypcb.co.kr';
+
+        const categoryMap = {
+            'korean': '한식',
+            'chinese': '중식',
+            'western': '양식'
+        };
+
+        const colorPalettes = {
+            korean: ['#e53e3e', '#dd6b20', '#d69e2e', '#38a169', '#319795', '#3182ce', '#5a67d8', '#805ad5'],
+            chinese: ['#c53030', '#2c5282', '#2f855a', '#6b46c1', '#00718a', '#c05621', '#276749', '#4a5568'],
+            western: ['#742a2a', '#1a365d', '#22543d', '#553c9a', '#744210', '#2d3748', '#2c7a7b', '#975a16']
         };
 
         let currentCategory = 'korean';
+        let currentMenuData = { items: [], colors: [] };
         let isSpinning = false;
+        let isLoading = false;
         let currentRotation = 0;
 
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
 
-        function selectCategory(category) {
-            if (isSpinning) return;
+        // API 함수들
+        async function fetchRestaurants(category) {
+            const response = await fetch(`${API_BASE_URL}/api/restaurants?limit=20&offset=0&category=${category}`);
+            if (!response.ok) {
+                throw new Error('레스토랑 목록을 불러오는데 실패했습니다');
+            }
+            return await response.json();
+        }
+
+        async function fetchRestaurantDetails(restaurantId) {
+            const response = await fetch(`${API_BASE_URL}/api/restaurants/${restaurantId}`);
+            if (!response.ok) {
+                throw new Error('레스토랑 상세 정보를 불러오는데 실패했습니다');
+            }
+            return await response.json();
+        }
+
+        async function loadMenuData(category) {
+            try {
+                isLoading = true;
+                showLoading();
+
+                // 레스토랑 리스트 가져오기
+                const restaurants = await fetchRestaurants(categoryMap[category]);
+
+                if (!restaurants || restaurants.length === 0) {
+                    throw new Error('해당 카테고리의 레스토랑이 없습니다');
+                }
+
+                // 각 레스토랑의 메뉴 가져오기
+                const allMenus = [];
+                const detailPromises = restaurants.slice(0, 10).map(r => fetchRestaurantDetails(r.id));
+                const details = await Promise.all(detailPromises);
+
+                details.forEach(detail => {
+                    if (detail.result && detail.data && detail.data.menus) {
+                        detail.data.menus.forEach(menu => {
+                            allMenus.push({
+                                name: menu.name,
+                                price: menu.price,
+                                restaurant: detail.data.restaurant.name
+                            });
+                        });
+                    }
+                });
+
+                if (allMenus.length === 0) {
+                    throw new Error('메뉴 정보가 없습니다');
+                }
+
+                // 메뉴가 너무 많으면 랜덤으로 선택
+                const maxMenus = 12;
+                let selectedMenus = allMenus;
+                if (allMenus.length > maxMenus) {
+                    selectedMenus = [];
+                    const shuffled = [...allMenus].sort(() => Math.random() - 0.5);
+                    selectedMenus = shuffled.slice(0, maxMenus);
+                }
+
+                // 색상 할당
+                const colors = [];
+                const palette = colorPalettes[category];
+                for (let i = 0; i < selectedMenus.length; i++) {
+                    colors.push(palette[i % palette.length]);
+                }
+
+                currentMenuData = {
+                    items: selectedMenus,
+                    colors: colors
+                };
+
+                hideLoading();
+                drawRoulette();
+
+            } catch (error) {
+                console.error('Error loading menu data:', error);
+                showError(error.message);
+
+                // 폴백 데이터 사용
+                useFallbackData(category);
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function useFallbackData(category) {
+            const fallbackData = {
+                korean: ['김치찌개', '된장찌개', '불고기', '비빔밥', '삼겹살', '갈비탕', '냉면', '순두부찌개'],
+                chinese: ['짜장면', '짬뽕', '탕수육', '마파두부', '양장피', '깐풍기', '볶음밥', '군만두'],
+                western: ['스테이크', '파스타', '피자', '리조또', '햄버거', '샐러드', '그라탕', '오므라이스']
+            };
+
+            const items = fallbackData[category].map(name => ({ name, price: '', restaurant: '' }));
+            currentMenuData = {
+                items: items,
+                colors: colorPalettes[category]
+            };
+
+            hideLoading();
+            drawRoulette();
+        }
+
+        function showLoading() {
+            document.getElementById('result').innerHTML = '<p style="color: #718096;"><span class="loading"></span>메뉴 데이터를 불러오는 중...</p>';
+            document.getElementById('spinBtn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('result').innerHTML = '<p style="color: #718096;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>';
+            document.getElementById('spinBtn').disabled = false;
+        }
+
+        function showError(message) {
+            document.getElementById('result').innerHTML = `<p class="error-text">⚠️ ${message}<br><small>기본 메뉴로 진행합니다</small></p>`;
+        }
+
+        async function selectCategory(category) {
+            if (isSpinning || isLoading) return;
 
             currentCategory = category;
 
@@ -334,16 +469,17 @@
             });
             event.target.classList.add('active');
 
-            // 룰렛 다시 그리기
-            drawRoulette();
-
-            // 결과 초기화
-            document.getElementById('result').innerHTML = '<p style="color: #718096;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>';
+            // API에서 메뉴 데이터 로드
+            await loadMenuData(category);
         }
 
         function drawRoulette() {
-            const items = menuData[currentCategory].items;
-            const colors = menuData[currentCategory].colors;
+            if (!currentMenuData.items || currentMenuData.items.length === 0) {
+                return;
+            }
+
+            const items = currentMenuData.items;
+            const colors = currentMenuData.colors;
             const centerX = canvas.width / 2;
             const centerY = canvas.height / 2;
             const radius = canvas.width / 2 - 10;
@@ -375,7 +511,8 @@
                 ctx.font = 'bold 16px Arial';
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
                 ctx.shadowBlur = 4;
-                ctx.fillText(item, radius - 20, 5);
+                const menuName = typeof item === 'string' ? item : item.name;
+                ctx.fillText(menuName, radius - 20, 5);
                 ctx.restore();
             });
 
@@ -390,13 +527,13 @@
         }
 
         function spinRoulette() {
-            if (isSpinning) return;
+            if (isSpinning || !currentMenuData.items || currentMenuData.items.length === 0) return;
 
             isSpinning = true;
             document.getElementById('spinBtn').disabled = true;
             document.getElementById('result').innerHTML = '<p style="color: #718096;">룰렛이 돌아가는 중...</p>';
 
-            const items = menuData[currentCategory].items;
+            const items = currentMenuData.items;
             const spinDuration = 3000; // 3초
             const spinRotations = 5 + Math.random() * 3; // 5-8바퀴
             const totalRotation = spinRotations * Math.PI * 2;
@@ -428,7 +565,16 @@
 
                     // 결과 표시
                     setTimeout(() => {
-                        document.getElementById('result').innerHTML = `<div class="result-text">🎉 ${selectedItem} 🎉</div>`;
+                        const menuName = typeof selectedItem === 'string' ? selectedItem : selectedItem.name;
+                        const restaurant = typeof selectedItem === 'object' && selectedItem.restaurant
+                            ? `<br><small style="font-size: 0.6em; color: #718096;">${selectedItem.restaurant}</small>`
+                            : '';
+                        const price = typeof selectedItem === 'object' && selectedItem.price
+                            ? `<br><small style="font-size: 0.5em; color: #4a5568;">${selectedItem.price}</small>`
+                            : '';
+
+                        document.getElementById('result').innerHTML =
+                            `<div class="result-text">🎉 ${menuName} 🎉${restaurant}${price}</div>`;
                         isSpinning = false;
                         document.getElementById('spinBtn').disabled = false;
                     }, 500);
@@ -438,8 +584,10 @@
             animate();
         }
 
-        // 초기 룰렛 그리기
-        drawRoulette();
+        // 초기 데이터 로드
+        window.addEventListener('DOMContentLoaded', () => {
+            loadMenuData('korean');
+        });
     </script>
 </body>
 </html>
