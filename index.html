@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Page Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: fadeInDown 1s ease-in-out;
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            animation: fadeInUp 1s ease-in-out;
+        }
+
+        .random-facts {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            animation: fadeIn 1.5s ease-in-out;
+        }
+
+        .fact-item {
+            margin: 15px 0;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .fact-emoji {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .button-container {
+            margin-top: 30px;
+            animation: fadeInUp 2s ease-in-out;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        .shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) {
+            width: 80px;
+            height: 80px;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            width: 120px;
+            height: 120px;
+            left: 70%;
+            animation-delay: 2s;
+        }
+
+        .shape:nth-child(3) {
+            width: 60px;
+            height: 60px;
+            left: 40%;
+            animation-delay: 4s;
+        }
+
+        .shape:nth-child(4) {
+            width: 100px;
+            height: 100px;
+            left: 85%;
+            animation-delay: 6s;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .footer {
+            margin-top: 40px;
+            font-size: 0.9em;
+            opacity: 0.7;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <div class="container">
+        <h1>🎲 Random Page</h1>
+        <p class="subtitle">당신을 위한 랜덤 컨텐츠</p>
+
+        <div class="random-facts">
+            <h2 style="margin-bottom: 20px;">오늘의 랜덤 사실들</h2>
+            <div class="fact-item">
+                <span class="fact-emoji">🌟</span>
+                <span id="fact1">랜덤 숫자: <strong id="random-num"></strong></span>
+            </div>
+            <div class="fact-item">
+                <span class="fact-emoji">🎨</span>
+                <span>랜덤 컬러: <strong id="random-color"></strong></span>
+            </div>
+            <div class="fact-item">
+                <span class="fact-emoji">🎯</span>
+                <span id="random-quote"></span>
+            </div>
+            <div class="fact-item">
+                <span class="fact-emoji">⏰</span>
+                <span>현재 시간: <strong id="current-time"></strong></span>
+            </div>
+        </div>
+
+        <div class="button-container">
+            <button class="btn" onclick="location.reload()">🔄 새로운 랜덤 생성</button>
+        </div>
+
+        <div class="footer">
+            <p>Generated with ❤️ by GitHub Pages</p>
+        </div>
+    </div>
+
+    <script>
+        // 랜덤 숫자 생성
+        document.getElementById('random-num').textContent = Math.floor(Math.random() * 1000);
+
+        // 랜덤 색상 생성
+        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+        document.getElementById('random-color').textContent = randomColor;
+        document.getElementById('random-color').style.color = randomColor;
+
+        // 랜덤 명언
+        const quotes = [
+            '오늘도 멋진 하루를 보내세요! 💫',
+            '당신은 할 수 있습니다! 🚀',
+            '새로운 시작은 언제나 가능합니다 🌅',
+            '작은 진전도 진전입니다 🎯',
+            '실패는 성공의 어머니입니다 💪',
+            '꿈을 향해 나아가세요 🌈',
+            '오늘의 노력이 내일의 성공을 만듭니다 ⭐',
+            '변화는 지금 이 순간부터 시작됩니다 🌱'
+        ];
+        document.getElementById('random-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+
+        // 현재 시간
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString('ko-KR');
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>
