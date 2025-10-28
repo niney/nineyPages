@@ -13,38 +13,37 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: #f0f4f8;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #2d3748;
             padding: 20px;
         }
 
         .container {
             max-width: 900px;
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            background: white;
             border-radius: 20px;
             padding: 40px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
             text-align: center;
         }
 
         h1 {
             font-size: 3em;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            color: #2d3748;
             animation: fadeInDown 1s ease-in-out;
         }
 
         .subtitle {
             font-size: 1.2em;
             margin-bottom: 30px;
-            opacity: 0.9;
+            color: #4a5568;
         }
 
         .category-buttons {
@@ -56,9 +55,9 @@
         }
 
         .category-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
             padding: 12px 30px;
             font-size: 1.1em;
             border-radius: 50px;
@@ -68,15 +67,16 @@
         }
 
         .category-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
+            background: #edf2f7;
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .category-btn.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-color: white;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            background: #4299e1;
+            color: white;
+            border-color: #4299e1;
+            box-shadow: 0 2px 12px rgba(66, 153, 225, 0.3);
         }
 
         .roulette-container {
@@ -91,7 +91,7 @@
 
         #rouletteCanvas {
             border-radius: 50%;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             background: white;
         }
 
@@ -104,14 +104,14 @@
             height: 0;
             border-left: 20px solid transparent;
             border-right: 20px solid transparent;
-            border-top: 40px solid #FFD700;
-            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+            border-top: 40px solid #e53e3e;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
             z-index: 10;
         }
 
         .spin-button {
-            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
-            color: #333;
+            background: #48bb78;
+            color: white;
             border: none;
             padding: 18px 50px;
             font-size: 1.3em;
@@ -119,13 +119,14 @@
             border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
             margin-top: 20px;
         }
 
         .spin-button:hover:not(:disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
         }
 
         .spin-button:disabled {
@@ -136,19 +137,20 @@
         .result-container {
             margin-top: 30px;
             padding: 25px;
-            background: rgba(255, 255, 255, 0.15);
+            background: #f7fafc;
             border-radius: 15px;
             min-height: 100px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.3em;
+            border: 1px solid #e2e8f0;
         }
 
         .result-text {
             font-size: 2em;
             font-weight: bold;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            color: #2d3748;
             animation: bounceIn 0.6s ease-out;
         }
 
@@ -164,7 +166,7 @@
 
         .shape {
             position: absolute;
-            opacity: 0.15;
+            opacity: 0.08;
             font-size: 3em;
             animation: float 15s infinite ease-in-out;
         }
@@ -200,7 +202,7 @@
                 opacity: 0;
             }
             50% {
-                opacity: 0.15;
+                opacity: 0.08;
             }
             100% {
                 transform: translateY(-100vh) rotate(360deg);
@@ -236,7 +238,7 @@
         .footer {
             margin-top: 40px;
             font-size: 0.9em;
-            opacity: 0.7;
+            color: #718096;
         }
 
         @media (max-width: 768px) {
@@ -286,7 +288,7 @@
 
         <div class="result-container">
             <div id="result">
-                <p style="opacity: 0.7;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>
+                <p style="color: #718096;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>
             </div>
         </div>
 
@@ -300,17 +302,17 @@
             korean: {
                 name: '한식',
                 items: ['김치찌개', '된장찌개', '불고기', '비빔밥', '삼겹살', '갈비탕', '냉면', '순두부찌개'],
-                colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2']
+                colors: ['#e53e3e', '#dd6b20', '#d69e2e', '#38a169', '#319795', '#3182ce', '#5a67d8', '#805ad5']
             },
             chinese: {
                 name: '중식',
                 items: ['짜장면', '짬뽕', '탕수육', '마파두부', '양장피', '깐풍기', '볶음밥', '군만두'],
-                colors: ['#E74C3C', '#3498DB', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#2ECC71', '#34495E']
+                colors: ['#c53030', '#2c5282', '#2f855a', '#6b46c1', '#00718a', '#c05621', '#276749', '#4a5568']
             },
             western: {
                 name: '양식',
                 items: ['스테이크', '파스타', '피자', '리조또', '햄버거', '샐러드', '그라탕', '오므라이스'],
-                colors: ['#8E44AD', '#27AE60', '#C0392B', '#16A085', '#D35400', '#2980B9', '#F1C40F', '#7F8C8D']
+                colors: ['#742a2a', '#1a365d', '#22543d', '#553c9a', '#744210', '#2d3748', '#2c7a7b', '#975a16']
             }
         };
 
@@ -336,7 +338,7 @@
             drawRoulette();
 
             // 결과 초기화
-            document.getElementById('result').innerHTML = '<p style="opacity: 0.7;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>';
+            document.getElementById('result').innerHTML = '<p style="color: #718096;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>';
         }
 
         function drawRoulette() {
@@ -392,7 +394,7 @@
 
             isSpinning = true;
             document.getElementById('spinBtn').disabled = true;
-            document.getElementById('result').innerHTML = '<p style="opacity: 0.7;">룰렛이 돌아가는 중...</p>';
+            document.getElementById('result').innerHTML = '<p style="color: #718096;">룰렛이 돌아가는 중...</p>';
 
             const items = menuData[currentCategory].items;
             const spinDuration = 3000; // 3초
