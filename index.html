@@ -79,6 +79,46 @@
             box-shadow: 0 2px 12px rgba(66, 153, 225, 0.3);
         }
 
+        .restaurant-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .restaurant-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .restaurant-btn {
+            background: white;
+            color: #2d3748;
+            border: 2px solid #cbd5e0;
+            padding: 10px 20px;
+            font-size: 0.95em;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .restaurant-btn:hover {
+            background: #edf2f7;
+            border-color: #4299e1;
+            transform: translateY(-1px);
+        }
+
+        .restaurant-btn.selected {
+            background: #48bb78;
+            color: white;
+            border-color: #48bb78;
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+        }
+
         .roulette-container {
             position: relative;
             display: inline-block;
@@ -290,12 +330,18 @@
 
     <div class="container">
         <h1>🎰 음식 메뉴 룰렛</h1>
-        <p class="subtitle">카테고리를 선택하고 룰렛을 돌려보세요!</p>
+        <p class="subtitle">카테고리와 레스토랑을 선택하고 룰렛을 돌려보세요!</p>
 
         <div class="category-buttons">
             <button class="category-btn active" onclick="selectCategory('korean')">🍚 한식</button>
             <button class="category-btn" onclick="selectCategory('chinese')">🍜 중식</button>
             <button class="category-btn" onclick="selectCategory('western')">🍝 양식</button>
+        </div>
+
+        <div class="restaurant-section" id="restaurantSection">
+            <div class="restaurant-buttons" id="restaurantButtons">
+                <p style="color: #718096;">카테고리를 선택하면 레스토랑 목록이 표시됩니다</p>
+            </div>
         </div>
 
         <div class="roulette-container">
@@ -334,6 +380,8 @@
         };
 
         let currentCategory = 'korean';
+        let currentRestaurants = [];
+        let selectedRestaurant = null;
         let currentMenuData = { items: [], colors: [] };
         let isSpinning = false;
         let isLoading = false;
@@ -359,10 +407,10 @@
             return await response.json();
         }
 
-        async function loadMenuData(category) {
+        async function loadRestaurants(category) {
             try {
                 isLoading = true;
-                showLoading();
+                showRestaurantLoading();
 
                 // 레스토랑 리스트 가져오기
                 const restaurants = await fetchRestaurants(categoryMap[category]);
@@ -371,45 +419,75 @@
                     throw new Error('해당 카테고리의 레스토랑이 없습니다');
                 }
 
-                // 각 레스토랑의 메뉴 가져오기
-                const allMenus = [];
-                const detailPromises = restaurants.slice(0, 10).map(r => fetchRestaurantDetails(r.id));
-                const details = await Promise.all(detailPromises);
+                currentRestaurants = restaurants;
+                displayRestaurants(restaurants);
 
-                details.forEach(detail => {
-                    if (detail.result && detail.data && detail.data.menus) {
-                        detail.data.menus.forEach(menu => {
-                            allMenus.push({
-                                name: menu.name,
-                                price: menu.price,
-                                restaurant: detail.data.restaurant.name
-                            });
-                        });
-                    }
-                });
+            } catch (error) {
+                console.error('Error loading restaurants:', error);
+                showRestaurantError(error.message);
+            } finally {
+                isLoading = false;
+            }
+        }
 
-                if (allMenus.length === 0) {
-                    throw new Error('메뉴 정보가 없습니다');
+        function displayRestaurants(restaurants) {
+            const container = document.getElementById('restaurantButtons');
+            container.innerHTML = '';
+
+            restaurants.forEach((restaurant, index) => {
+                const button = document.createElement('button');
+                button.className = 'restaurant-btn';
+                button.textContent = restaurant.name || restaurant.place_name;
+                button.onclick = () => selectRestaurant(restaurant);
+                container.appendChild(button);
+            });
+        }
+
+        async function selectRestaurant(restaurant) {
+            if (isSpinning || isLoading) return;
+
+            selectedRestaurant = restaurant;
+
+            // 레스토랑 버튼 선택 상태 변경
+            document.querySelectorAll('.restaurant-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+
+            // 선택한 레스토랑의 메뉴 로드
+            await loadMenuData(restaurant.id);
+        }
+
+        async function loadMenuData(restaurantId) {
+            try {
+                isLoading = true;
+                showLoading();
+
+                // 레스토랑 상세 정보 가져오기
+                const detail = await fetchRestaurantDetails(restaurantId);
+
+                if (!detail.result || !detail.data || !detail.data.menus || detail.data.menus.length === 0) {
+                    throw new Error('해당 레스토랑의 메뉴 정보가 없습니다');
                 }
 
-                // 메뉴가 너무 많으면 랜덤으로 선택
-                const maxMenus = 12;
-                let selectedMenus = allMenus;
-                if (allMenus.length > maxMenus) {
-                    selectedMenus = [];
-                    const shuffled = [...allMenus].sort(() => Math.random() - 0.5);
-                    selectedMenus = shuffled.slice(0, maxMenus);
-                }
+                const menus = detail.data.menus;
+
+                // 메뉴 데이터 구성
+                const menuItems = menus.map(menu => ({
+                    name: menu.name,
+                    price: menu.price,
+                    restaurant: detail.data.restaurant.name
+                }));
 
                 // 색상 할당
                 const colors = [];
-                const palette = colorPalettes[category];
-                for (let i = 0; i < selectedMenus.length; i++) {
+                const palette = colorPalettes[currentCategory];
+                for (let i = 0; i < menuItems.length; i++) {
                     colors.push(palette[i % palette.length]);
                 }
 
                 currentMenuData = {
-                    items: selectedMenus,
+                    items: menuItems,
                     colors: colors
                 };
 
@@ -421,7 +499,7 @@
                 showError(error.message);
 
                 // 폴백 데이터 사용
-                useFallbackData(category);
+                useFallbackData(currentCategory);
             } finally {
                 isLoading = false;
             }
@@ -444,13 +522,21 @@
             drawRoulette();
         }
 
+        function showRestaurantLoading() {
+            document.getElementById('restaurantButtons').innerHTML = '<p style="color: #718096;"><span class="loading"></span>레스토랑 목록을 불러오는 중...</p>';
+        }
+
+        function showRestaurantError(message) {
+            document.getElementById('restaurantButtons').innerHTML = `<p class="error-text">⚠️ ${message}</p>`;
+        }
+
         function showLoading() {
             document.getElementById('result').innerHTML = '<p style="color: #718096;"><span class="loading"></span>메뉴 데이터를 불러오는 중...</p>';
             document.getElementById('spinBtn').disabled = true;
         }
 
         function hideLoading() {
-            document.getElementById('result').innerHTML = '<p style="color: #718096;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>';
+            document.getElementById('result').innerHTML = '<p style="color: #718096;">레스토랑을 선택하고 룰렛을 돌려보세요!</p>';
             document.getElementById('spinBtn').disabled = false;
         }
 
@@ -462,6 +548,7 @@
             if (isSpinning || isLoading) return;
 
             currentCategory = category;
+            selectedRestaurant = null;
 
             // 버튼 active 상태 변경
             document.querySelectorAll('.category-btn').forEach(btn => {
@@ -469,8 +556,13 @@
             });
             event.target.classList.add('active');
 
-            // API에서 메뉴 데이터 로드
-            await loadMenuData(category);
+            // 룰렛 초기화
+            currentMenuData = { items: [], colors: [] };
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('result').innerHTML = '<p style="color: #718096;">레스토랑을 선택해주세요</p>';
+
+            // 레스토랑 목록 로드
+            await loadRestaurants(category);
         }
 
         function drawRoulette() {
@@ -586,7 +678,7 @@
 
         // 초기 데이터 로드
         window.addEventListener('DOMContentLoaded', () => {
-            loadMenuData('korean');
+            loadRestaurants('korean');
         });
     </script>
 </body>
