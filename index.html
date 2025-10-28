@@ -396,7 +396,24 @@
             if (!response.ok) {
                 throw new Error('레스토랑 목록을 불러오는데 실패했습니다');
             }
-            return await response.json();
+            const data = await response.json();
+
+            // 응답 구조 확인 및 배열 추출
+            console.log('Restaurant API response:', data);
+
+            // 다양한 응답 형식 처리
+            if (Array.isArray(data)) {
+                return data;
+            } else if (data.data && Array.isArray(data.data)) {
+                return data.data;
+            } else if (data.results && Array.isArray(data.results)) {
+                return data.results;
+            } else if (data.restaurants && Array.isArray(data.restaurants)) {
+                return data.restaurants;
+            } else {
+                // 단일 객체인 경우 배열로 변환
+                return [data];
+            }
         }
 
         async function fetchRestaurantDetails(restaurantId) {
@@ -415,7 +432,9 @@
                 // 레스토랑 리스트 가져오기
                 const restaurants = await fetchRestaurants(categoryMap[category]);
 
-                if (!restaurants || restaurants.length === 0) {
+                console.log('Loaded restaurants:', restaurants);
+
+                if (!restaurants || !Array.isArray(restaurants) || restaurants.length === 0) {
                     throw new Error('해당 카테고리의 레스토랑이 없습니다');
                 }
 
@@ -424,7 +443,7 @@
 
             } catch (error) {
                 console.error('Error loading restaurants:', error);
-                showRestaurantError(error.message);
+                showRestaurantError(error.message || error.toString());
             } finally {
                 isLoading = false;
             }
@@ -434,10 +453,21 @@
             const container = document.getElementById('restaurantButtons');
             container.innerHTML = '';
 
+            if (!Array.isArray(restaurants)) {
+                console.error('restaurants is not an array:', restaurants);
+                container.innerHTML = '<p class="error-text">레스토랑 데이터 형식 오류</p>';
+                return;
+            }
+
+            if (restaurants.length === 0) {
+                container.innerHTML = '<p style="color: #718096;">레스토랑이 없습니다</p>';
+                return;
+            }
+
             restaurants.forEach((restaurant, index) => {
                 const button = document.createElement('button');
                 button.className = 'restaurant-btn';
-                button.textContent = restaurant.name || restaurant.place_name;
+                button.textContent = restaurant.name || restaurant.place_name || `레스토랑 ${index + 1}`;
                 button.onclick = () => selectRestaurant(restaurant);
                 container.appendChild(button);
             });
