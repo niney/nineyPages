@@ -302,6 +302,50 @@
             color: #718096;
         }
 
+        .debug-log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1a202c;
+            color: #e2e8f0;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #2d3748;
+        }
+
+        .debug-log h3 {
+            color: #63b3ed;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .debug-log pre {
+            margin: 5px 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .log-success {
+            color: #68d391;
+        }
+
+        .log-error {
+            color: #fc8181;
+        }
+
+        .log-warning {
+            color: #f6ad55;
+        }
+
+        .log-info {
+            color: #63b3ed;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2em;
@@ -362,6 +406,11 @@
         <div class="footer">
             <p>맛있는 식사 되세요! 🍽️</p>
         </div>
+
+        <div class="debug-log" id="debugLog">
+            <h3>🔍 디버그 로그</h3>
+            <div id="logContent"></div>
+        </div>
     </div>
 
     <script>
@@ -390,60 +439,79 @@
         const canvas = document.getElementById('rouletteCanvas');
         const ctx = canvas.getContext('2d');
 
+        // 화면 로깅 함수
+        function logToScreen(message, type = 'info') {
+            const logContent = document.getElementById('logContent');
+            const pre = document.createElement('pre');
+            pre.className = `log-${type}`;
+            pre.textContent = message;
+            logContent.appendChild(pre);
+
+            // 스크롤을 맨 아래로
+            const debugLog = document.getElementById('debugLog');
+            debugLog.scrollTop = debugLog.scrollHeight;
+
+            // 콘솔에도 출력
+            console.log(message);
+        }
+
+        function clearLog() {
+            document.getElementById('logContent').innerHTML = '';
+        }
+
         // API 함수들
         async function fetchRestaurants(category) {
             try {
                 const url = `${API_BASE_URL}/api/restaurants?limit=20&offset=0&category=${category}`;
-                console.log('🌐 [API REQUEST] Fetching restaurants from:', url);
-                console.log('📋 Category:', category);
+                logToScreen('🌐 [요청] 레스토랑 목록 가져오기', 'info');
+                logToScreen(`📋 URL: ${url}`, 'info');
+                logToScreen(`📋 카테고리: ${category}`, 'info');
 
                 const response = await fetch(url);
 
-                console.log('📡 [API RESPONSE] Status:', response.status, response.statusText);
-                console.log('📡 [API RESPONSE] Headers:', {
-                    'content-type': response.headers.get('content-type'),
-                    'access-control-allow-origin': response.headers.get('access-control-allow-origin')
-                });
+                logToScreen(`📡 [응답] 상태: ${response.status} ${response.statusText}`, 'info');
+                const corsHeader = response.headers.get('access-control-allow-origin');
+                logToScreen(`📡 CORS 헤더: ${corsHeader || '없음'}`, corsHeader ? 'success' : 'warning');
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: 레스토랑 목록을 불러오는데 실패했습니다`);
                 }
 
                 const data = await response.json();
-                console.log('✅ [API SUCCESS] Restaurant data received:', data);
-                console.log('📊 [API SUCCESS] Data type:', typeof data, 'Is Array:', Array.isArray(data));
+                logToScreen('✅ [성공] 데이터 수신 완료', 'success');
+                logToScreen(`📊 데이터 타입: ${typeof data}, 배열: ${Array.isArray(data)}`, 'info');
 
                 // 응답 구조 확인 및 배열 추출
                 if (Array.isArray(data)) {
-                    console.log('✅ Response is direct array, length:', data.length);
+                    logToScreen(`✅ 직접 배열 형식, 개수: ${data.length}`, 'success');
                     return data;
                 } else if (data.data && Array.isArray(data.data)) {
-                    console.log('✅ Response has data array, length:', data.data.length);
+                    logToScreen(`✅ data 배열 형식, 개수: ${data.data.length}`, 'success');
                     return data.data;
                 } else if (data.results && Array.isArray(data.results)) {
-                    console.log('✅ Response has results array, length:', data.results.length);
+                    logToScreen(`✅ results 배열 형식, 개수: ${data.results.length}`, 'success');
                     return data.results;
                 } else if (data.restaurants && Array.isArray(data.restaurants)) {
-                    console.log('✅ Response has restaurants array, length:', data.restaurants.length);
+                    logToScreen(`✅ restaurants 배열 형식, 개수: ${data.restaurants.length}`, 'success');
                     return data.restaurants;
                 } else {
-                    console.warn('⚠️ Response is not array format, converting single object to array');
+                    logToScreen('⚠️ 배열이 아닌 형식, 단일 객체로 변환', 'warning');
+                    logToScreen(`응답 내용: ${JSON.stringify(data).substring(0, 200)}...`, 'info');
                     return [data];
                 }
             } catch (error) {
-                console.error('❌ [API ERROR] Failed to fetch restaurants');
-                console.error('❌ Error type:', error.name);
-                console.error('❌ Error message:', error.message);
-                console.error('❌ Full error:', error);
+                logToScreen('❌ [에러] 레스토랑 목록 가져오기 실패', 'error');
+                logToScreen(`❌ 에러 타입: ${error.name}`, 'error');
+                logToScreen(`❌ 에러 메시지: ${error.message}`, 'error');
 
                 // CORS 에러 감지
                 if (error.message.includes('Failed to fetch') ||
                     error.message.includes('NetworkError') ||
                     error.name === 'TypeError' && error.message.includes('fetch')) {
-                    console.error('🚫 [CORS ERROR] This appears to be a CORS issue!');
-                    console.error('🚫 The server needs to set proper CORS headers:');
-                    console.error('   - Access-Control-Allow-Origin: *');
-                    console.error('   - Access-Control-Allow-Methods: GET, POST, OPTIONS');
+                    logToScreen('🚫 [CORS 에러] 서버가 요청을 차단했습니다!', 'error');
+                    logToScreen('🚫 서버에서 다음 헤더 설정 필요:', 'error');
+                    logToScreen('   - Access-Control-Allow-Origin: *', 'error');
+                    logToScreen('   - Access-Control-Allow-Methods: GET', 'error');
                     throw new Error('CORS 오류: 서버가 요청을 차단했습니다. 서버에서 CORS 설정이 필요합니다.');
                 }
 
@@ -454,31 +522,29 @@
         async function fetchRestaurantDetails(restaurantId) {
             try {
                 const url = `${API_BASE_URL}/api/restaurants/${restaurantId}`;
-                console.log('🌐 [API REQUEST] Fetching restaurant details from:', url);
-                console.log('🏪 Restaurant ID:', restaurantId);
+                logToScreen(`🌐 [요청] 레스토랑 상세 정보 가져오기 (ID: ${restaurantId})`, 'info');
 
                 const response = await fetch(url);
 
-                console.log('📡 [API RESPONSE] Status:', response.status, response.statusText);
+                logToScreen(`📡 [응답] 상태: ${response.status} ${response.statusText}`, 'info');
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: 레스토랑 상세 정보를 불러오는데 실패했습니다`);
                 }
 
                 const data = await response.json();
-                console.log('✅ [API SUCCESS] Restaurant details received:', data);
+                logToScreen('✅ [성공] 레스토랑 상세 정보 수신', 'success');
 
                 return data;
             } catch (error) {
-                console.error('❌ [API ERROR] Failed to fetch restaurant details');
-                console.error('❌ Error type:', error.name);
-                console.error('❌ Error message:', error.message);
+                logToScreen('❌ [에러] 레스토랑 상세 정보 가져오기 실패', 'error');
+                logToScreen(`❌ 에러 메시지: ${error.message}`, 'error');
 
                 // CORS 에러 감지
                 if (error.message.includes('Failed to fetch') ||
                     error.message.includes('NetworkError') ||
                     error.name === 'TypeError' && error.message.includes('fetch')) {
-                    console.error('🚫 [CORS ERROR] This appears to be a CORS issue!');
+                    logToScreen('🚫 [CORS 에러] 발생', 'error');
                     throw new Error('CORS 오류: 서버가 요청을 차단했습니다. 서버에서 CORS 설정이 필요합니다.');
                 }
 
@@ -491,20 +557,22 @@
                 isLoading = true;
                 showRestaurantLoading();
 
+                logToScreen('─'.repeat(50), 'info');
+                logToScreen(`📂 카테고리 변경: ${categoryMap[category]}`, 'info');
+
                 // 레스토랑 리스트 가져오기
                 const restaurants = await fetchRestaurants(categoryMap[category]);
-
-                console.log('Loaded restaurants:', restaurants);
 
                 if (!restaurants || !Array.isArray(restaurants) || restaurants.length === 0) {
                     throw new Error('해당 카테고리의 레스토랑이 없습니다');
                 }
 
+                logToScreen(`✅ ${restaurants.length}개 레스토랑 로드 완료`, 'success');
                 currentRestaurants = restaurants;
                 displayRestaurants(restaurants);
 
             } catch (error) {
-                console.error('Error loading restaurants:', error);
+                logToScreen(`❌ 레스토랑 로드 실패: ${error.message}`, 'error');
                 showRestaurantError(error.message || error.toString());
             } finally {
                 isLoading = false;
@@ -516,7 +584,7 @@
             container.innerHTML = '';
 
             if (!Array.isArray(restaurants)) {
-                console.error('restaurants is not an array:', restaurants);
+                logToScreen('❌ restaurants가 배열이 아닙니다', 'error');
                 container.innerHTML = '<p class="error-text">레스토랑 데이터 형식 오류</p>';
                 return;
             }
@@ -526,6 +594,7 @@
                 return;
             }
 
+            logToScreen(`🏪 ${restaurants.length}개 레스토랑 버튼 생성`, 'info');
             restaurants.forEach((restaurant, index) => {
                 const button = document.createElement('button');
                 button.className = 'restaurant-btn';
@@ -539,6 +608,10 @@
             if (isSpinning || isLoading) return;
 
             selectedRestaurant = restaurant;
+            const restaurantName = restaurant.name || restaurant.place_name || '알 수 없음';
+
+            logToScreen('─'.repeat(50), 'info');
+            logToScreen(`🏪 레스토랑 선택: ${restaurantName}`, 'success');
 
             // 레스토랑 버튼 선택 상태 변경
             document.querySelectorAll('.restaurant-btn').forEach(btn => {
@@ -563,6 +636,7 @@
                 }
 
                 const menus = detail.data.menus;
+                logToScreen(`🍽️ ${menus.length}개 메뉴 발견`, 'success');
 
                 // 메뉴 데이터 구성
                 const menuItems = menus.map(menu => ({
@@ -583,11 +657,12 @@
                     colors: colors
                 };
 
+                logToScreen('✅ 룰렛 생성 완료!', 'success');
                 hideLoading();
                 drawRoulette();
 
             } catch (error) {
-                console.error('Error loading menu data:', error);
+                logToScreen(`❌ 메뉴 로드 실패: ${error.message}`, 'error');
                 showError(error.message);
 
                 // 폴백 데이터 사용
@@ -792,12 +867,12 @@
 
         // 초기 데이터 로드
         window.addEventListener('DOMContentLoaded', () => {
-            console.log('='.repeat(60));
-            console.log('🎰 음식 메뉴 룰렛 시작');
-            console.log('='.repeat(60));
-            console.log('📍 API Base URL:', API_BASE_URL);
-            console.log('🔍 디버깅 정보가 여기 표시됩니다');
-            console.log('='.repeat(60));
+            logToScreen('═'.repeat(50), 'info');
+            logToScreen('🎰 음식 메뉴 룰렛 시작', 'success');
+            logToScreen('═'.repeat(50), 'info');
+            logToScreen(`📍 API 서버: ${API_BASE_URL}`, 'info');
+            logToScreen('🔍 모든 API 요청/응답이 여기 표시됩니다', 'info');
+            logToScreen('═'.repeat(50), 'info');
 
             loadRestaurants('korean');
         });
