@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Page Generator</title>
+    <title>음식 메뉴 룰렛</title>
     <style>
         * {
             margin: 0;
@@ -13,7 +13,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -24,7 +24,7 @@
         }
 
         .container {
-            max-width: 800px;
+            max-width: 900px;
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border-radius: 20px;
@@ -36,7 +36,7 @@
 
         h1 {
             font-size: 3em;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
             animation: fadeInDown 1s ease-in-out;
         }
@@ -45,48 +45,111 @@
             font-size: 1.2em;
             margin-bottom: 30px;
             opacity: 0.9;
-            animation: fadeInUp 1s ease-in-out;
         }
 
-        .random-facts {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 15px;
-            padding: 30px;
-            margin: 30px 0;
-            animation: fadeIn 1.5s ease-in-out;
+        .category-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
         }
 
-        .fact-item {
-            margin: 15px 0;
-            font-size: 1.1em;
-            line-height: 1.6;
-        }
-
-        .fact-emoji {
-            font-size: 1.5em;
-            margin-right: 10px;
-        }
-
-        .button-container {
-            margin-top: 30px;
-            animation: fadeInUp 2s ease-in-out;
-        }
-
-        .btn {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        .category-btn {
+            background: rgba(255, 255, 255, 0.2);
             color: white;
-            border: none;
-            padding: 15px 30px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 30px;
             font-size: 1.1em;
             border-radius: 50px;
             cursor: pointer;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .category-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .btn:hover {
-            transform: translateY(-3px);
+        .category-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .roulette-container {
+            position: relative;
+            display: inline-block;
+            margin: 30px 0;
+        }
+
+        .roulette-wheel {
+            position: relative;
+        }
+
+        #rouletteCanvas {
+            border-radius: 50%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            background: white;
+        }
+
+        .roulette-arrow {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid #FFD700;
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+            z-index: 10;
+        }
+
+        .spin-button {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: #333;
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            margin-top: 20px;
+        }
+
+        .spin-button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .spin-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result-container {
+            margin-top: 30px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3em;
+        }
+
+        .result-text {
+            font-size: 2em;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: bounceIn 0.6s ease-out;
         }
 
         .floating-shapes {
@@ -101,37 +164,34 @@
 
         .shape {
             position: absolute;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
+            opacity: 0.15;
+            font-size: 3em;
             animation: float 15s infinite ease-in-out;
         }
 
         .shape:nth-child(1) {
-            width: 80px;
-            height: 80px;
             left: 10%;
             animation-delay: 0s;
         }
 
         .shape:nth-child(2) {
-            width: 120px;
-            height: 120px;
-            left: 70%;
+            left: 30%;
             animation-delay: 2s;
         }
 
         .shape:nth-child(3) {
-            width: 60px;
-            height: 60px;
-            left: 40%;
+            left: 50%;
             animation-delay: 4s;
         }
 
         .shape:nth-child(4) {
-            width: 100px;
-            height: 100px;
-            left: 85%;
+            left: 70%;
             animation-delay: 6s;
+        }
+
+        .shape:nth-child(5) {
+            left: 85%;
+            animation-delay: 8s;
         }
 
         @keyframes float {
@@ -140,7 +200,7 @@
                 opacity: 0;
             }
             50% {
-                opacity: 1;
+                opacity: 0.15;
             }
             100% {
                 transform: translateY(-100vh) rotate(360deg);
@@ -159,23 +219,17 @@
             }
         }
 
-        @keyframes fadeInUp {
-            from {
+        @keyframes bounceIn {
+            0% {
                 opacity: 0;
-                transform: translateY(50px);
+                transform: scale(0.3);
             }
-            to {
+            50% {
                 opacity: 1;
-                transform: translateY(0);
+                transform: scale(1.1);
             }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
+            100% {
+                transform: scale(1);
             }
         }
 
@@ -192,79 +246,198 @@
             .container {
                 padding: 20px;
             }
+            #rouletteCanvas {
+                width: 280px !important;
+                height: 280px !important;
+            }
+            .result-text {
+                font-size: 1.5em;
+            }
         }
     </style>
 </head>
 <body>
     <div class="floating-shapes">
-        <div class="shape"></div>
-        <div class="shape"></div>
-        <div class="shape"></div>
-        <div class="shape"></div>
+        <div class="shape">🍚</div>
+        <div class="shape">🍜</div>
+        <div class="shape">🍝</div>
+        <div class="shape">🍕</div>
+        <div class="shape">🍱</div>
     </div>
 
     <div class="container">
-        <h1>🎲 Random Page</h1>
-        <p class="subtitle">당신을 위한 랜덤 컨텐츠</p>
+        <h1>🎰 음식 메뉴 룰렛</h1>
+        <p class="subtitle">카테고리를 선택하고 룰렛을 돌려보세요!</p>
 
-        <div class="random-facts">
-            <h2 style="margin-bottom: 20px;">오늘의 랜덤 사실들</h2>
-            <div class="fact-item">
-                <span class="fact-emoji">🌟</span>
-                <span id="fact1">랜덤 숫자: <strong id="random-num"></strong></span>
-            </div>
-            <div class="fact-item">
-                <span class="fact-emoji">🎨</span>
-                <span>랜덤 컬러: <strong id="random-color"></strong></span>
-            </div>
-            <div class="fact-item">
-                <span class="fact-emoji">🎯</span>
-                <span id="random-quote"></span>
-            </div>
-            <div class="fact-item">
-                <span class="fact-emoji">⏰</span>
-                <span>현재 시간: <strong id="current-time"></strong></span>
+        <div class="category-buttons">
+            <button class="category-btn active" onclick="selectCategory('korean')">🍚 한식</button>
+            <button class="category-btn" onclick="selectCategory('chinese')">🍜 중식</button>
+            <button class="category-btn" onclick="selectCategory('western')">🍝 양식</button>
+        </div>
+
+        <div class="roulette-container">
+            <div class="roulette-arrow"></div>
+            <div class="roulette-wheel">
+                <canvas id="rouletteCanvas" width="400" height="400"></canvas>
             </div>
         </div>
 
-        <div class="button-container">
-            <button class="btn" onclick="location.reload()">🔄 새로운 랜덤 생성</button>
+        <button class="spin-button" onclick="spinRoulette()" id="spinBtn">🎯 룰렛 돌리기</button>
+
+        <div class="result-container">
+            <div id="result">
+                <p style="opacity: 0.7;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>
+            </div>
         </div>
 
         <div class="footer">
-            <p>Generated with ❤️ by GitHub Pages</p>
+            <p>맛있는 식사 되세요! 🍽️</p>
         </div>
     </div>
 
     <script>
-        // 랜덤 숫자 생성
-        document.getElementById('random-num').textContent = Math.floor(Math.random() * 1000);
+        const menuData = {
+            korean: {
+                name: '한식',
+                items: ['김치찌개', '된장찌개', '불고기', '비빔밥', '삼겹살', '갈비탕', '냉면', '순두부찌개'],
+                colors: ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2']
+            },
+            chinese: {
+                name: '중식',
+                items: ['짜장면', '짬뽕', '탕수육', '마파두부', '양장피', '깐풍기', '볶음밥', '군만두'],
+                colors: ['#E74C3C', '#3498DB', '#F39C12', '#9B59B6', '#1ABC9C', '#E67E22', '#2ECC71', '#34495E']
+            },
+            western: {
+                name: '양식',
+                items: ['스테이크', '파스타', '피자', '리조또', '햄버거', '샐러드', '그라탕', '오므라이스'],
+                colors: ['#8E44AD', '#27AE60', '#C0392B', '#16A085', '#D35400', '#2980B9', '#F1C40F', '#7F8C8D']
+            }
+        };
 
-        // 랜덤 색상 생성
-        const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
-        document.getElementById('random-color').textContent = randomColor;
-        document.getElementById('random-color').style.color = randomColor;
+        let currentCategory = 'korean';
+        let isSpinning = false;
+        let currentRotation = 0;
 
-        // 랜덤 명언
-        const quotes = [
-            '오늘도 멋진 하루를 보내세요! 💫',
-            '당신은 할 수 있습니다! 🚀',
-            '새로운 시작은 언제나 가능합니다 🌅',
-            '작은 진전도 진전입니다 🎯',
-            '실패는 성공의 어머니입니다 💪',
-            '꿈을 향해 나아가세요 🌈',
-            '오늘의 노력이 내일의 성공을 만듭니다 ⭐',
-            '변화는 지금 이 순간부터 시작됩니다 🌱'
-        ];
-        document.getElementById('random-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+        const canvas = document.getElementById('rouletteCanvas');
+        const ctx = canvas.getContext('2d');
 
-        // 현재 시간
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('current-time').textContent = now.toLocaleString('ko-KR');
+        function selectCategory(category) {
+            if (isSpinning) return;
+
+            currentCategory = category;
+
+            // 버튼 active 상태 변경
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 룰렛 다시 그리기
+            drawRoulette();
+
+            // 결과 초기화
+            document.getElementById('result').innerHTML = '<p style="opacity: 0.7;">룰렛을 돌려서 오늘의 메뉴를 선택해보세요!</p>';
         }
-        updateTime();
-        setInterval(updateTime, 1000);
+
+        function drawRoulette() {
+            const items = menuData[currentCategory].items;
+            const colors = menuData[currentCategory].colors;
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = canvas.width / 2 - 10;
+            const sliceAngle = (Math.PI * 2) / items.length;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 각 섹션 그리기
+            items.forEach((item, index) => {
+                const startAngle = sliceAngle * index + currentRotation;
+                const endAngle = startAngle + sliceAngle;
+
+                // 섹션 배경
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.lineTo(centerX, centerY);
+                ctx.fillStyle = colors[index];
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // 텍스트
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(startAngle + sliceAngle / 2);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px Arial';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 4;
+                ctx.fillText(item, radius - 20, 5);
+                ctx.restore();
+            });
+
+            // 중앙 원
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function spinRoulette() {
+            if (isSpinning) return;
+
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('result').innerHTML = '<p style="opacity: 0.7;">룰렛이 돌아가는 중...</p>';
+
+            const items = menuData[currentCategory].items;
+            const spinDuration = 3000; // 3초
+            const spinRotations = 5 + Math.random() * 3; // 5-8바퀴
+            const totalRotation = spinRotations * Math.PI * 2;
+
+            const startTime = Date.now();
+            const startRotation = currentRotation;
+
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / spinDuration, 1);
+
+                // easeOut 효과
+                const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+                currentRotation = startRotation + totalRotation * easeProgress;
+                drawRoulette();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // 결과 계산
+                    const normalizedRotation = currentRotation % (Math.PI * 2);
+                    const sliceAngle = (Math.PI * 2) / items.length;
+
+                    // 화살표가 가리키는 위치 (위쪽 중앙)
+                    const arrowAngle = (Math.PI * 2 - normalizedRotation + Math.PI / 2) % (Math.PI * 2);
+                    const selectedIndex = Math.floor(arrowAngle / sliceAngle);
+                    const selectedItem = items[selectedIndex];
+
+                    // 결과 표시
+                    setTimeout(() => {
+                        document.getElementById('result').innerHTML = `<div class="result-text">🎉 ${selectedItem} 🎉</div>`;
+                        isSpinning = false;
+                        document.getElementById('spinBtn').disabled = false;
+                    }, 500);
+                }
+            }
+
+            animate();
+        }
+
+        // 초기 룰렛 그리기
+        drawRoulette();
     </script>
 </body>
 </html>
