@@ -374,7 +374,25 @@
 
     <div class="container">
         <h1>🎰 음식 메뉴 룰렛</h1>
-        <p class="subtitle">레스토랑을 선택하고 룰렛을 돌려보세요!</p>
+        <p class="subtitle">레스토랑을 검색하고 룰렛을 돌려보세요!</p>
+
+        <div style="margin-bottom: 20px;">
+            <label for="searchInput" style="display: block; margin-bottom: 10px; font-weight: bold; color: #2d3748;">
+                🔍 레스토랑 검색
+            </label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="searchInput" placeholder="레스토랑 이름을 입력하세요 (예: 영등포 고기집)"
+                    style="flex: 1; padding: 12px; font-size: 1em; border-radius: 8px; border: 2px solid #cbd5e0;"
+                    onkeypress="if(event.key === 'Enter') searchRestaurants()">
+                <button onclick="searchRestaurants()"
+                    style="padding: 12px 30px; font-size: 1em; font-weight: bold; border-radius: 8px; border: none; background: #4299e1; color: white; cursor: pointer;">
+                    검색
+                </button>
+            </div>
+            <p style="font-size: 0.85em; color: #718096; margin-top: 5px;">
+                💡 DB에 없으면 네이버 플레이스에서 실시간 검색합니다
+            </p>
+        </div>
 
         <div class="restaurant-section" id="restaurantSection">
             <label for="restaurantSelect" style="display: block; margin-bottom: 10px; font-weight: bold; color: #2d3748;">
@@ -543,6 +561,121 @@
             }
         }
 
+        // 검색 API 함수들
+        async function searchInDB(searchName) {
+            try {
+                const url = `${API_BASE_URL}/api/restaurants?searchName=${encodeURIComponent(searchName)}&limit=100`;
+                logToScreen(`🔍 [DB 검색] "${searchName}"`, 'info');
+                logToScreen(`📋 URL: ${url}`, 'info');
+
+                const response = await fetch(url);
+                logToScreen(`📡 [응답] 상태: ${response.status}`, 'info');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.data && data.data.restaurants && Array.isArray(data.data.restaurants)) {
+                    logToScreen(`✅ [DB 검색 성공] ${data.data.restaurants.length}개 발견`, 'success');
+                    return data.data.restaurants;
+                }
+
+                logToScreen(`ℹ️ [DB 검색] 결과 없음`, 'info');
+                return [];
+            } catch (error) {
+                logToScreen(`❌ [DB 검색 실패] ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function searchInNaver(keyword) {
+            try {
+                const url = `${API_BASE_URL}/api/crawler/search?keyword=${encodeURIComponent(keyword)}&maxResults=100`;
+                logToScreen(`🔍 [네이버 플레이스 검색] "${keyword}"`, 'info');
+                logToScreen(`📋 URL: ${url}`, 'info');
+                logToScreen(`⏳ 크롤링 중... (시간이 걸릴 수 있습니다)`, 'warning');
+
+                const response = await fetch(url);
+                logToScreen(`📡 [응답] 상태: ${response.status}`, 'info');
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.result && data.data && data.data.places && Array.isArray(data.data.places)) {
+                    logToScreen(`✅ [네이버 검색 성공] ${data.data.places.length}개 발견`, 'success');
+
+                    // 네이버 플레이스 데이터를 레스토랑 형식으로 변환
+                    const restaurants = data.data.places.map(place => ({
+                        id: place.placeId || place.place_id,
+                        place_id: place.placeId || place.place_id,
+                        name: place.name,
+                        place_name: place.name,
+                        category: place.category || '기타',
+                        phone: place.phone || '',
+                        address: place.address || '',
+                        url: place.url || '',
+                        isNaverPlace: true // 네이버 플레이스에서 온 데이터 표시
+                    }));
+
+                    return restaurants;
+                }
+
+                logToScreen(`ℹ️ [네이버 검색] 결과 없음`, 'info');
+                return [];
+            } catch (error) {
+                logToScreen(`❌ [네이버 검색 실패] ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        async function searchRestaurants() {
+            const searchInput = document.getElementById('searchInput');
+            const keyword = searchInput.value.trim();
+
+            if (!keyword) {
+                alert('검색어를 입력해주세요');
+                return;
+            }
+
+            if (isLoading) return;
+
+            try {
+                isLoading = true;
+                showRestaurantLoading();
+
+                logToScreen('═'.repeat(50), 'info');
+                logToScreen(`🔍 검색 시작: "${keyword}"`, 'info');
+
+                // 1단계: DB 검색
+                let restaurants = await searchInDB(keyword);
+
+                // 2단계: DB에 없으면 네이버 플레이스 검색
+                if (restaurants.length === 0) {
+                    logToScreen(`💡 DB에 없어서 네이버 플레이스 검색 시작`, 'warning');
+                    restaurants = await searchInNaver(keyword);
+                }
+
+                if (restaurants.length === 0) {
+                    throw new Error('검색 결과가 없습니다. 다른 키워드로 검색해보세요.');
+                }
+
+                logToScreen(`✅ 총 ${restaurants.length}개 레스토랑 발견`, 'success');
+                currentRestaurants = restaurants;
+                displayRestaurants(restaurants);
+
+            } catch (error) {
+                logToScreen(`❌ 검색 실패: ${error.message}`, 'error');
+                showRestaurantError(error.message);
+            } finally {
+                isLoading = false;
+            }
+        }
+
         async function loadRestaurants() {
             try {
                 isLoading = true;
@@ -613,7 +746,14 @@
             logToScreen('─'.repeat(50), 'info');
             logToScreen(`🏪 레스토랑 선택: ${restaurantName}`, 'success');
 
-            // 선택한 레스토랑의 메뉴 로드
+            // 네이버 플레이스에서 온 레스토랑인지 확인
+            if (restaurant.isNaverPlace) {
+                logToScreen(`⚠️ 네이버 플레이스 레스토랑은 메뉴 정보가 없습니다`, 'warning');
+                showError('네이버 플레이스 검색 결과는 메뉴 정보가 없어 룰렛을 사용할 수 없습니다.\nDB에 저장된 레스토랑을 선택하거나, 다른 검색어로 시도해보세요.');
+                return;
+            }
+
+            // DB에 저장된 레스토랑의 메뉴 로드
             await loadMenuData(restaurant.id);
         }
 
@@ -832,8 +972,9 @@
             logToScreen(`📍 API 서버: ${API_BASE_URL}`, 'info');
             logToScreen('🔍 모든 API 요청/응답이 여기 표시됩니다', 'info');
             logToScreen('═'.repeat(50), 'info');
-
-            loadRestaurants();
+            logToScreen('💡 레스토랑 이름을 검색해주세요', 'info');
+            logToScreen('   예: "영등포 고기집", "강남 초밥" 등', 'info');
+            logToScreen('═'.repeat(50), 'info');
         });
     </script>
 </body>
