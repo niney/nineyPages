@@ -972,9 +972,12 @@
             logToScreen(`📍 API 서버: ${API_BASE_URL}`, 'info');
             logToScreen('🔍 모든 API 요청/응답이 여기 표시됩니다', 'info');
             logToScreen('═'.repeat(50), 'info');
-            logToScreen('💡 레스토랑 이름을 검색해주세요', 'info');
-            logToScreen('   예: "영등포 고기집", "강남 초밥" 등', 'info');
+            logToScreen('💡 전체 레스토랑 목록을 먼저 로드합니다', 'info');
+            logToScreen('💡 검색으로 원하는 레스토랑을 찾을 수도 있습니다', 'info');
             logToScreen('═'.repeat(50), 'info');
+
+            // 전체 레스토랑 목록 로드
+            loadRestaurants();
         });
     </script>
 </body>
