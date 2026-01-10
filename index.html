@@ -938,8 +938,8 @@
                     const normalizedRotation = currentRotation % (Math.PI * 2);
                     const sliceAngle = (Math.PI * 2) / items.length;
 
-                    // 화살표가 가리키는 위치 (위쪽 중앙)
-                    const arrowAngle = (Math.PI * 2 - normalizedRotation + Math.PI / 2) % (Math.PI * 2);
+                    // 화살표가 가리키는 위치 (위쪽 중앙, 12시 방향 = 3π/2)
+                    const arrowAngle = ((3 * Math.PI / 2 - normalizedRotation) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
                     const selectedIndex = Math.floor(arrowAngle / sliceAngle);
                     const selectedItem = items[selectedIndex];
 
